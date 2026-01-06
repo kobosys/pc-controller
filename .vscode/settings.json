@@ -1,0 +1,4 @@
+{
+  "python.defaultInterpreterPath": "C:/Users/user/miniconda3/envs/slamware-app/python.exe",
+  "python.envFile": "${workspaceFolder}/configs/.env"
+}
