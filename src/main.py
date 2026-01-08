@@ -14,17 +14,23 @@ from robot.client import RobotClient
 # ------------------------
 # Action 상태 판정
 # ------------------------
-def is_action_finished(action: Dict[str, Any]) -> bool:
-    state = action.get("state") or {}
-    result = state.get("result")
-    stage = action.get("stage")
+def is_action_finished(a: dict) -> bool:
+    # stage가 비어 있거나 None인 펌웨어가 있음 → state.status로 판단
+    state = a.get("state") or {}
+    status = state.get("status", None)
+    result = state.get("result", None)
 
-    if result not in (None, 0):
+    # 실패는 즉시 종료(상위에서 예외 처리)
+    if isinstance(result, int) and result != 0:
         return True
 
-    if isinstance(stage, str) and stage.upper() in (
-        "FINISHED", "DONE", "COMPLETED", "SUCCESS", "FAILED"
-    ):
+    # Slamware에서 status=4가 완료/종료로 반복되는 케이스 대응
+    if status == 4:
+        return True
+
+    # stage가 정상적으로 오는 경우도 함께 지원
+    stage = a.get("stage") or ""
+    if stage.upper() in {"FINISHED", "SUCCEEDED", "COMPLETED", "STOPPED"}:
         return True
 
     return False
@@ -163,7 +169,13 @@ def main() -> None:
 
     print("[INIT]", robot.power_status())
 
-    pois = ["POI1", "POI2"]
+    # ✅ POI 3개로
+    pois = ["POI1", "POI2", "POI3"]
+
+    # ✅ 시작할 때 POI가 실제로 존재하는지 + 좌표 출력 (현장 디버깅용)
+    for name in pois:
+        x, y, yaw = robot.resolve_poi_pose_by_name(name)
+        print(f"[POI] {name} -> x={x}, y={y}, yaw={yaw}")
 
     pause_event = threading.Event()
     pause_event.set()  # 시작은 RUN
